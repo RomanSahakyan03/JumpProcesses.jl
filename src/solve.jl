@@ -1,6 +1,6 @@
-function SciMLBase.__solve(jump_prob::SciMLBase.AbstractJumpProblem{P},
+function SciMLBase.__solve(jump_prob::JumpProblem{IIP, P},
         alg::SciMLBase.AbstractDEAlgorithm;
-        merge_callbacks = true, kwargs...) where {P}
+        merge_callbacks = true, kwargs...) where {IIP, P}
     # Merge jump_prob.kwargs with passed kwargs
     kwargs = DiffEqBase.merge_problem_kwargs(jump_prob; merge_callbacks, kwargs...)
 
@@ -9,10 +9,9 @@ function SciMLBase.__solve(jump_prob::SciMLBase.AbstractJumpProblem{P},
     integrator.sol
 end
 
-#Ambiguity Fix
-function SciMLBase.__solve(jump_prob::SciMLBase.AbstractJumpProblem{P},
+function SciMLBase.__solve(jump_prob::JumpProblem{IIP, P},
         alg::Union{SciMLBase.AbstractRODEAlgorithm, SciMLBase.AbstractSDEAlgorithm};
-        merge_callbacks = true, kwargs...) where {P}
+        merge_callbacks = true, kwargs...) where {IIP, P}
     # Merge jump_prob.kwargs with passed kwargs
     kwargs = DiffEqBase.merge_problem_kwargs(jump_prob; merge_callbacks, kwargs...)
 
@@ -23,17 +22,17 @@ end
 
 # if passed a JumpProblem over a DiscreteProblem, and no aggregator is selected use
 # SSAStepper
-function SciMLBase.__solve(jump_prob::SciMLBase.AbstractJumpProblem{P};
-        kwargs...) where {P <: DiscreteProblem}
+function SciMLBase.__solve(jump_prob::JumpProblem{IIP, P};
+        kwargs...) where {IIP, P <: DiscreteProblem}
     SciMLBase.__solve(jump_prob, SSAStepper(); kwargs...)
 end
 
-function SciMLBase.__solve(jump_prob::SciMLBase.AbstractJumpProblem; kwargs...)
+function SciMLBase.__solve(jump_prob::JumpProblem; kwargs...)
     error("Auto-solver selection is currently only implemented for JumpProblems defined over DiscreteProblems. Please explicitly specify a solver algorithm in calling solve.")
 end
 
-function SciMLBase.__init(_jump_prob::SciMLBase.AbstractJumpProblem{P},
-        alg::SciMLBase.AbstractDEAlgorithm; merge_callbacks = true, kwargs...) where {P}
+function SciMLBase.__init(_jump_prob::JumpProblem{IIP, P},
+        alg::SciMLBase.AbstractDEAlgorithm; merge_callbacks = true, kwargs...) where {IIP, P}
     # Merge jump_prob.kwargs with passed kwargs
     kwargs = DiffEqBase.merge_problem_kwargs(_jump_prob; merge_callbacks, kwargs...)
 
@@ -70,7 +69,8 @@ end
 # jump aggregator's RNG. We cannot assume the JumpProblem's stored RNG is any particular
 # type, so we pass the seed through `hash` (to decorrelate from the input) and then through
 # a Xoshiro draw (to ensure strong mixing regardless of the target RNG's seeding quality).
-const _JUMP_SEED_SALT = 0x4a756d7050726f63  # "JumPProc" in ASCII
+# Truncate salt to native UInt so hash(::UInt64, ::UInt) matches on 32-bit Julia.
+const _JUMP_SEED_SALT = 0x4a756d7050726f63 % UInt  # "JumPProc" in ASCII
 _derive_jump_seed(seed) = rand(Random.Xoshiro(hash(seed, _JUMP_SEED_SALT)), UInt64)
 
 function resetted_jump_problem(_jump_prob, seed)
