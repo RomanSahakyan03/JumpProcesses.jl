@@ -72,7 +72,9 @@ algorithms are optimized for pure jump problems.
     ordinary parameters it is just an (unbiased) SSA simulation. Valid whenever the
     total propensity is bounded over the trajectory (e.g. population-bounded
     systems); currently `ConstantRateJump`s and `MassActionJump`s with additive
-    affects only (no `VariableRateJump` yet). See [`BoundedSSA`](@ref).
+    affects only (no `VariableRateJump` yet). See [`BoundedSSA`](@ref) and the
+    [differentiable simulation guide](@ref bounded_ssa) for the `rate_bound`
+    contract, the uniformization construction, and the `affect!` requirements.
 
 ## RegularJump Compatible Methods
 

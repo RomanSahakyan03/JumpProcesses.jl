@@ -192,11 +192,8 @@ end
     end
 
     # --- Regression: reversible NATURAL boundary A0=N, B0=0 -------------------
-    # Starting with all mass in A (B0=0) makes the B->A channel have zero propensity at t=0.
-    # The earlier accept + conditional stick-breaking (with a deterministic last channel and an
-    # epsilon denominator) drove an invalid StochasticAD alternate trajectory here (negative B,
-    # channel probability > 1). The Λ-normalized full-outcome selection fixes it; check that both
-    # parameter derivatives from the boundary start match the analytic values.
+    # B0 = 0 gives the B->A channel zero propensity at t = 0; it must get probability exactly 0
+    # (no negative-B alternate trajectory). Both derivatives must match the analytic values.
     @testset "reversible natural boundary (A0=N, B0=0)" begin
         T, N, k1_0, k2_0, Λ = 1.0, 100, 1.0, 0.5, 130.0     # Λ = N·max(k1,k2)_box with margin
         conv = ConstantRateJump((u, p, t) -> p[1] * u[1],
@@ -232,7 +229,7 @@ end
         @test abs(g - analytic) < 4 * se
     end
 
-    # --- Regression: Float32 at the boundary (no accidental Float64 promotion; no magic 1e-300) --
+    # --- Regression: Float32 at the boundary keeps Float32 (no accidental Float64 promotion) --
     @testset "Float32 boundary reversible (primal)" begin
         T, N, Λ = 1.0f0, 100, 130.0f0
         conv = ConstantRateJump((u, p, t) -> p[1] * u[1],

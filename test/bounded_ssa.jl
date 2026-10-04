@@ -58,7 +58,7 @@ _SS.canonicalize(::_SS.Tunable, p::BSSATunable) = (p.tunables, BSSATunable, true
     end
 
     # --- Float32 MassActionJump path keeps Float32 state -------------------------
-    # Protects the previously hard-coded Float64 delta allocation on the mass-action path.
+    # The mass-action deltas use the run's float type, so a Float32 problem stays Float32.
     @testset "Float32 MassActionJump keeps Float32 state" begin
         T, Λ = 1.0f0, 60.0f0
         maj = MassActionJump([[1 => 1]], [[1 => -1]]; param_idxs = [1])
@@ -70,11 +70,8 @@ _SS.canonicalize(::_SS.Tunable, p::BSSATunable) = (p.tunables, BSSATunable, true
     end
 
     # --- absorbing / zero-propensity state: no 0/0 in channel selection ----------
-    # Regression test for the type-generic `tiny` sentinel that replaced `1e-300`: starting
-    # already extinct with two death channels, every candidate event sees total propensity 0,
-    # so channel selection evaluates `rand(Bernoulli(0 / (0 + tiny)))`. Without the sentinel
-    # this is a 0/0 → NaN and `Bernoulli` throws; the absorbing state must be left unchanged
-    # and no NaN/Inf may appear.
+    # Starting extinct with two death channels, every candidate sees total propensity 0; the
+    # selection denominator stays ≥ Λ, so the absorbing state is unchanged and no NaN appears.
     @testset "zero-propensity state does not divide by zero" begin
         T, Λ = 1.0, 20.0
         u0 = [0]
@@ -85,7 +82,7 @@ _SS.canonicalize(::_SS.Tunable, p::BSSATunable) = (p.tunables, BSSATunable, true
         sol = solve(jprob, BoundedSSA(; rate_bound = Λ); saveat = [0.0, 0.5, 1.0])
         @test sol.u[end] == u0                          # absorbing state is unchanged
         @test all(isfinite, sol.t)
-        @test all(u -> all(isfinite, u), sol.u)         # would be NaN without the sentinel
+        @test all(u -> all(isfinite, u), sol.u)
     end
 
     # --- RNG reproducibility and independence from the global RNG ----------------
